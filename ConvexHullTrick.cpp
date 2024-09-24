@@ -57,11 +57,11 @@ struct ConvexHullTrick {
             return k * x + b;
         }
     };
-
     ve<ll> dots;
     ve<Line> hull;
 
     ll intersect(Line a, Line b) {
+       assert(a.k - b.k != 0);
         ll x = (b.b - a.b) / (a.k - b.k);
         if (abs(b.b - a.b) % abs(a.k - b.k)) {
             x++;
@@ -71,14 +71,28 @@ struct ConvexHullTrick {
 
     void add(Line cur) {
         if (sz(hull)) {
-            assert(cur.k < hull.back().k);
+            if (cur.k == hull.back().k) {
+                if (cur.b >= hull.back().b) {
+                    return;
+                }
+            }
+
+            assert(cur.k <= hull.back().k);
         }
 
-        while (sz(hull) > 1 && dots.back() >= intersect(cur, hull[sz(hull) - 2])) {
+        while (sz(hull) > 0 && hull.back().k == cur.k) {
+            hull.pop_back();
+            if (sz(dots)) {
+                dots.pop_back();
+            }
+        }
+
+        while (sz(hull) > 1 && dots.back() >= intersect(cur, hull[sz(hull) - 1])) {
             hull.pop_back();
             dots.pop_back();
         }
         hull.pb(cur);
+
         if (sz(hull) > 1) {
             dots.pb(intersect(hull[sz(hull) - 1], hull[sz(hull) - 2]));
         }
@@ -89,6 +103,7 @@ struct ConvexHullTrick {
             return 2e18;
         }
         int p = upper_bound(all(dots), x) - dots.begin() - 1;
+
         return hull[p + 1](x);
     }
 } T;
