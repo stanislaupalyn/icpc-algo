@@ -2,7 +2,7 @@
 
 #define fr(i, a, b) for (int i = (a); i <= (b); ++i)
 #define rf(i, a, b) for (int i = (a); i >= (b); --i)
-#define fe(x, y)    for (auto &x : y)
+#define fe(x, y) for (auto& x : y)
 
 #define fi first
 #define se second
@@ -11,8 +11,8 @@
 #define mt make_tuple
 
 #define all(x) (x).begin(), (x).end()
-#define sz(x)  (int) (x).size()
-#define pw(x)  (1LL << (x))
+#define sz(x) (int)(x).size()
+#define pw(x) (1LL << (x))
 
 using namespace std;
 
@@ -25,115 +25,118 @@ mt19937_64 rng(chrono::system_clock::now().time_since_epoch().count());
 #include <ext/pb_ds/assoc_container.hpp>
 using namespace __gnu_pbds;
 template <typename T>
-using oset =
-    tree<T, null_type, less<T>, rb_tree_tag, tree_order_statistics_node_update>;
+using oset = tree<T, null_type, less<T>, rb_tree_tag, tree_order_statistics_node_update>;
 #define fbo find_by_order
 #define ook order_of_key
 
-template <typename T> bool umn(T &a, T b) { return a > b ? a = b, 1 : 0; }
-template <typename T> bool umx(T &a, T b) { return a < b ? a = b, 1 : 0; }
+template <typename T>
+bool umn(T& a, T b) {
+    return a > b ? a = b, 1 : 0;
+}
+template <typename T>
+bool umx(T& a, T b) {
+    return a < b ? a = b, 1 : 0;
+}
 
 using ll = long long;
-using ld = long double;
 using pii = pair<int, int>;
 using pll = pair<ll, ll>;
-template <typename T> using ve = vector<T>;
+template <typename T>
+using ve = vector<T>;
 
-ll rnd(ll l, ll r) { return uniform_int_distribution<ll>(l, r)(rng); }
+ll rnd(ll l, ll r) {
+    return uniform_int_distribution<ll>(l, r)(rng);
+}
 
-using base = complex<ld>;
+using base = complex<double>;
+
+const double PI = acos(-1);
 
 /*
-https://judge.yosupo.jp/submission/259427
+https://judge.yosupo.jp/submission/289671
 
 NTT variant: https://judge.yosupo.jp/submission/259429
 */
 
-template <int LOG> struct FFT {
+template<int LOG = 22>
+struct FFT {
     ve<int> rev[LOG + 1];
-    ve<base> G[LOG + 1];
+    ve<base> g[LOG + 1];
+
     FFT() {
-        int N = pw(LOG);
+        fr (lvl, 0, LOG) {
+            // change to root = bpow(3, (MOD - 1) / N) in NTT case
+            // as well as all operations by modulo
+            base w{cos(2 * PI / pw(lvl)), sin(2 * PI / pw(lvl))};
+            g[lvl].resize(pw(lvl));
 
-        // change to root = bpow(3, (MOD - 1) / N) in NTT case
-        base root(cosl(2 * M_PI / N), sinl(2 * M_PI / N));
-        base start = root;
-
-        rf(lvl, LOG, 0) {
-            int tot = pw(lvl);
-            G[lvl].resize(tot);
-
-            base cur = 1;
-            fr(i, 0, tot - 1) {
-                G[lvl][i] = cur;
-                cur *= start;
+            g[lvl][0] = 1;
+            fr (i, 1, pw(lvl) - 1) {
+                g[lvl][i] = g[lvl][i - 1] * w;
             }
 
-            start = start * start;
-        }
-
-        fr(lvl, 0, LOG) {
-            int tot = pw(lvl);
-            rev[lvl].resize(tot);
-            fr(i, 1, tot - 1) {
-                rev[lvl][i] = ((i & 1) << (lvl - 1)) | (rev[lvl][i >> 1] >> 1);
+            rev[lvl].resize(pw(lvl));
+            if (lvl > 0) {
+                fr (i, 0, pw(lvl) - 1) {
+                    rev[lvl][i] = rev[lvl - 1][i >> 1] + (i & 1) * pw(lvl - 1);
+                }
             }
         }
     }
-    void fft(ve<base> &a, int sz, bool invert) {
-        int n = pw(sz);
-        fr(i, 0, n - 1) {
-            if (i < rev[sz][i]) {
-                swap(a[i], a[rev[sz][i]]);
+
+    ve<base> fft(ve<base> a, bool inv = 0) {
+        int p = __lg(sz(a));
+        fr (i, 0, sz(a) - 1) {
+            if (i < rev[p][i]) {
+                swap(a[i], a[rev[p][i]]);
             }
         }
 
-        base u, v;
-        fr(lvl, 1, sz) {
-            for (int i = 0; i < n; i += pw(lvl)) {
-                fr(j, i, i + pw(lvl - 1) - 1) {
-                    u = a[j];
-                    v = a[j + pw(lvl - 1)] * G[lvl][j - i];
-                    a[j] = u + v;
-                    a[j + pw(lvl - 1)] = u - v;
+        fr (lvl, 1, p) {
+            for (int i = 0; i < sz(a); i += pw(lvl)) {
+                fr (j, 0, pw(lvl - 1) - 1) {
+                    auto u = a[i + j];
+                    auto v = a[i + j + pw(lvl - 1)];
+                    a[i + j] = u + g[lvl][j] * v;
+                    a[i + j + pw(lvl - 1)] = u - g[lvl][j] * v;
                 }
             }
         }
 
-        if (invert) {
+        if (inv) {
             reverse(a.begin() + 1, a.end());
-            fr(i, 0, n - 1) { a[i] /= n; }
+            fe (x, a) x /= sz(a);
         }
+
+        return a;
     }
 
-    ve<int> multiply(const ve<int> &a, const ve<int> &b) {
-        ve<base> fa(a.begin(), a.end());
-        ve<base> fb(b.begin(), b.end());
-        int n = (int) a.size();
-        int m = (int) b.size();
+    ve<ll> multiply(ve<ll> a, ve<ll> b) {
+        int p = 1;
+        while (p < sz(a) + sz(b) - 1) p <<= 1;
 
-        int sz = 0;
-        while (pw(sz) < n + m - 1) {
-            sz++;
+        ve<base> ca(p), cb(p);
+        copy(all(a), ca.begin());
+        copy(all(b), cb.begin());
+
+        auto va = fft(ca);
+        auto vb = fft(cb);
+        fr (i, 0, p - 1) {
+            va[i] *= vb[i];
         }
-        fa.resize(pw(sz));
-        fb.resize(pw(sz));
 
-        fft(fa, sz, false);
-        fft(fb, sz, false);
-        int SZ = pw(sz);
-        fr(i, 0, SZ - 1) { fa[i] = fa[i] * fb[i]; }
+        va = fft(va, 1);
 
-        fft(fa, sz, true);
-        ve<int> res(SZ);
-        for (int i = 0; i < SZ; i++) {
-            res[i] = roundl(fa[i].real());
+        ve<ll> ans(p);
+        fr (i, 0, p - 1) {
+            ans[i] = round(va[i].real());
         }
-        return res;
+        while (sz(ans) > 1 && ans.back() == 0) ans.pop_back();
+        return ans;
     }
 };
 
-FFT<22> F;
+FFT T;
 
 void solve() {
     string a, b;
@@ -157,11 +160,11 @@ void solve() {
         b.erase(b.begin());
     }
 
-    ve<int> A, B;
+    ve<ll> A, B;
     rf(i, sz(a) - 1, 0) { A.pb(a[i] - '0'); }
     rf(i, sz(b) - 1, 0) { B.pb(b[i] - '0'); }
 
-    auto res = F.multiply(A, B);
+    auto res = T.multiply(A, B);
 
     fr(i, 0, sz(res) - 2) {
         res[i + 1] += res[i] / 10;
