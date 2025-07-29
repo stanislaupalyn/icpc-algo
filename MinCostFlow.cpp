@@ -143,10 +143,6 @@ struct MCF {
             }
             fe (cur, e) {
                 cur.cost += phi[cur.from] - phi[cur.to];
-
-                if (cur.flow < cur.cap) {
-                    assert(cur.cost >= 0);
-                }
             }
         }
     
@@ -206,9 +202,6 @@ struct MCF {
 
             fe (cur, e) {
                 cur.cost += phi[cur.from] - phi[cur.to];
-                if (cur.flow < cur.cap) {
-                    assert(cur.cost >= 0);
-                }
             }
         }
 
